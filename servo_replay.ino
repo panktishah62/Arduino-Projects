@@ -1,0 +1,45 @@
+#include <Servo.h>
+#include <EEPROM.h>
+
+Servo myServo;        // create Servo object to control a servo
+
+bool record = false;  // boolean to determine if recording is taking place
+int potPin = 0;       // analog pin used to connect the potentiometer
+int buttonPin = 13;   // analog pin used to connect the button
+int servoPin = 9;     // analog pin used to connect the Servo
+int val;              // variable to read the value from the analog pin
+int read;             // variable to read the data from memory
+
+void setup() {
+  pinMode(buttonPin, INPUT_PULLUP); // configure the button's pin
+  myServo.attach(servoPin);   // attaches the servo pin to the Servo object
+}
+
+void loop() {
+  // begin recording on potentiometer if button is pressed 
+  if (record == true) {
+    for (int i = 1; i < EEPROM.length(); i++) {
+      val = analogRead(potPin);            // reads the value of the potentiometer (value between 0 and 1023)
+      val = map(val, 0, 1023, 0, 180);     // scales it to use it with the servo (value between 0 and 180)
+
+      EEPROM.write(i, val);                // stores data in memory
+      myServo.write(val);                  // sets the servo position according to the scaled value
+      delay(15);                           // waits for the servo to get there
+    }
+    delay(1000);                           // pause before replay
+    record = false;                        // sets record to false in order to go to replay
+  }
+  // begin replay on servo
+  else {
+    for (int i = 1; i <= EEPROM.length(); i++) {
+      // returns to record if button is pressed
+      if (digitalRead(13) == 0) {
+        record = true;                    // sets record to true in order to go to rerecord the data
+        break;                            
+      }
+      read = EEPROM.read(i);              // sets the value of read to the value from memory
+      myServo.write(read);                // servo repeats the values collected from the potentiometer during record
+      delay(15);                          
+    }
+  }
+}
